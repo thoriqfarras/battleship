@@ -6,13 +6,14 @@ test('getShips return empty list when board first initialized', () => {
   expect(Gameboard().getShips().length).toBe(0);
 });
 
+const globalBoard = Gameboard();
+const carrier = new Ship('carrier');
+const battleship = new Ship('battleship');
+const destroyer = new Ship('destroyer');
+const submarine = new Ship('submarine');
+const patrol = new Ship('patrol boat');
+
 describe('placeShip() method', () => {
-  const globalBoard = Gameboard();
-  const carrier = new Ship('carrier');
-  const battleship = new Ship('battleship');
-  const destroyer = new Ship('destroyer');
-  const submarine = new Ship('submarine');
-  const patrol = new Ship('patrol boat');
   test('throws error with invalid coord', () => {
     expect(() => Gameboard().placeShip(new Ship('carrier'), 10, 10)).toThrow(
       Error
@@ -24,14 +25,14 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(carrier, 5, 0);
       for (let i = 5; i < carrier.size; i += 1)
-        expect(board.coords[0][i]).toMatch('carrier');
+        expect(board.getCells()[0][i]).toMatch('carrier');
     });
 
     test('successfully placed vertically on 0 <= y <= 5', () => {
       const board = Gameboard();
       board.placeShip(carrier, 0, 5, 'vertical');
       for (let i = 5; i < carrier.size; i += 1) {
-        expect(board.coords[i][0]).toMatch('carrier');
+        expect(board.getCells()[i][0]).toMatch('carrier');
       }
     });
 
@@ -55,7 +56,7 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(battleship, 6, 6);
       for (let i = 0; i < battleship.size; i += 1) {
-        expect(board.coords[6][6 + i]).toMatch('battleship');
+        expect(board.getCells()[6][6 + i]).toMatch('battleship');
       }
     });
 
@@ -63,7 +64,7 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(battleship, 8, 6, 'vertical');
       for (let i = 0; i < battleship.size; i += 1) {
-        expect(board.coords[6 + i][8]).toMatch('battleship');
+        expect(board.getCells()[6 + i][8]).toMatch('battleship');
       }
     });
 
@@ -87,11 +88,11 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(destroyer, 7, 6);
       for (let i = 0; i < destroyer.size; i += 1) {
-        expect(board.coords[6][7 + i]).toMatch('destroyer');
+        expect(board.getCells()[6][7 + i]).toMatch('destroyer');
       }
       board.placeShip(submarine, 0, 6);
       for (let i = 0; i < submarine.size; i += 1) {
-        expect(board.coords[6][0 + i]).toMatch('submarine');
+        expect(board.getCells()[6][0 + i]).toMatch('submarine');
       }
     });
 
@@ -99,11 +100,11 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(destroyer, 0, 7, 'vertical');
       for (let i = 0; i < destroyer.size; i += 1) {
-        expect(board.coords[7 + i][0]).toMatch('destroyer');
+        expect(board.getCells()[7 + i][0]).toMatch('destroyer');
       }
       board.placeShip(submarine, 1, 7, 'vertical');
       for (let i = 0; i < destroyer.size; i += 1) {
-        expect(board.coords[7 + i][1]).toMatch('submarine');
+        expect(board.getCells()[7 + i][1]).toMatch('submarine');
       }
     });
 
@@ -127,7 +128,7 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(patrol, 7, 6);
       for (let i = 0; i < patrol.size; i += 1) {
-        expect(board.coords[6][7 + i]).toMatch('patrol');
+        expect(board.getCells()[6][7 + i]).toMatch('patrol');
       }
     });
 
@@ -135,7 +136,7 @@ describe('placeShip() method', () => {
       const board = Gameboard();
       board.placeShip(patrol, 0, 7, 'vertical');
       for (let i = 0; i < patrol.size; i += 1) {
-        expect(board.coords[7 + i][0]).toMatch('patrol');
+        expect(board.getCells()[7 + i][0]).toMatch('patrol');
       }
     });
 
@@ -163,5 +164,54 @@ describe('placeShip() method', () => {
     );
     expect(() => board.placeShip(patrol, 4, 6, 'vertical')).not.toThrow(Error);
     expect(() => board.placeShip(submarine, 2, 7)).toThrow(Error);
+  });
+});
+
+describe('receiveAttack() & areAllShipsSunk method', () => {
+  test('error when coord is out of bounds', () => {
+    const board = Gameboard();
+    expect(() => board.receiveAttack(10, -1)).toThrow('coords out of bounds');
+  });
+
+  test('attack on empty cell', () => {
+    const board = Gameboard();
+    board.receiveAttack(0, 1);
+    expect(board.getCells()[1][0]).toBe(-1);
+    board.receiveAttack(0, 1);
+    expect(board.getCells()[1][0]).toBe(-1);
+  });
+
+  test('attack on occupied cell', () => {
+    const board = Gameboard();
+    const patrol = new Ship('patrol boat');
+    board.placeShip(patrol, 0, 1);
+    board.receiveAttack(0, 1);
+    expect(board.getCells()[1][0]).toBe(1);
+    expect(patrol.size).toBe(1);
+    board.receiveAttack(0, 1);
+    expect(board.getCells()[1][0]).toBe(1);
+    expect(patrol.size).toBe(1);
+  });
+
+  test('finish off a ship or two', () => {
+    const board = Gameboard();
+    const patrol = new Ship('patrol boat');
+    board.placeShip(patrol, 0, 1);
+    board.receiveAttack(0, 1);
+    expect(patrol.size).toBe(1);
+    board.receiveAttack(1, 1);
+    expect(patrol.size).toBe(0);
+    expect(board.getShips().includes(patrol)).toBeFalsy();
+    expect(board.areAllShipsSunk()).toBeTruthy();
+    const patrol2 = new Ship('patrol boat');
+    const carrier1 = new Ship('carrier');
+    board.placeShip(patrol2, 3, 1, 'vertical');
+    board.placeShip(carrier1, 4, 5);
+    board.receiveAttack(3, 1);
+    board.receiveAttack(3, 2);
+    expect(patrol2.size).toBe(0);
+    expect(board.getShips().includes(patrol2)).toBeFalsy();
+    expect(board.getShips().length).toBe(1);
+    expect(board.areAllShipsSunk()).toBeFalsy();
   });
 });
