@@ -12,8 +12,6 @@ export default function Gameboard() {
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   ];
   const ships = [];
-  const successfulAttacks = [];
-  const missedAttacks = [];
 
   function isValidCoord(...coord) {
     return coord.every((point) => point >= 0 && point < 10);
@@ -80,8 +78,14 @@ export default function Gameboard() {
     ships.push(ship);
   }
 
+  function isCoordAlreadyAttacked(x, y) {
+    return board[y][x] === -1 || board[y][x] === 1;
+  }
+
   function receiveAttack(x, y) {
     if (!isValidCoord(x, y)) throw new Error('coords out of bounds');
+    if (isCoordAlreadyAttacked(x, y))
+      throw new Error('coords already attacked');
 
     if (board[y][x] === 0) {
       board[y][x] = -1;
@@ -95,10 +99,6 @@ export default function Gameboard() {
     }
   }
 
-  function isCoordEmpty(coord) {
-    return board[coord[0]][coord[1]] === 0;
-  }
-
   function areAllShipsSunk() {
     return ships.length === 0;
   }
@@ -107,7 +107,6 @@ export default function Gameboard() {
     getShips: () => ships,
     getCells: () => board,
     placeShip,
-    isCoordEmpty,
     receiveAttack,
     areAllShipsSunk,
   };

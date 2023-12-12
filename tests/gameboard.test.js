@@ -177,8 +177,6 @@ describe('receiveAttack() & areAllShipsSunk method', () => {
     const board = Gameboard();
     board.receiveAttack(0, 1);
     expect(board.getCells()[1][0]).toBe(-1);
-    board.receiveAttack(0, 1);
-    expect(board.getCells()[1][0]).toBe(-1);
   });
 
   test('attack on occupied cell', () => {
@@ -188,9 +186,12 @@ describe('receiveAttack() & areAllShipsSunk method', () => {
     board.receiveAttack(0, 1);
     expect(board.getCells()[1][0]).toBe(1);
     expect(patrol.size).toBe(1);
-    board.receiveAttack(0, 1);
-    expect(board.getCells()[1][0]).toBe(1);
-    expect(patrol.size).toBe(1);
+  });
+
+  test('attack on already attacked cell', () => {
+    const board = Gameboard();
+    board.receiveAttack(1, 2);
+    expect(() => board.receiveAttack(1, 2)).toThrow('coords already attacked');
   });
 
   test('finish off a ship or two', () => {
