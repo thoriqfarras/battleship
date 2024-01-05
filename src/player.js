@@ -1,12 +1,20 @@
 import Gameboard from './gameboard';
+import { createBoard, drawShip } from './ui';
 import Ship from './ship';
 
-export default function Player(name) {
+export default function Player(name, color) {
   const board = Gameboard();
+  const domBoard = createBoard();
 
   function placeShip(type, x, y, axis = 'horizontal') {
     const ship = new Ship(type);
-    board.placeShip(ship, x, y, axis);
+    try {
+      board.placeShip(ship, x, y, axis);
+      drawShip(domBoard, ship, color, x, y, axis);
+    } catch (error) {
+      alert(error);
+      console.log(error);
+    }
   }
 
   function placeAttack(opponentBoard, x, y, random = false) {
@@ -24,5 +32,11 @@ export default function Player(name) {
     opponentBoard.receiveAttack(x, y);
   }
 
-  return { getName: () => name, getBoard: () => board, placeShip, placeAttack };
+  return {
+    getName: () => name,
+    getBoard: () => board,
+    getDomBoard: () => domBoard,
+    placeShip,
+    placeAttack,
+  };
 }
