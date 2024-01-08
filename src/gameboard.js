@@ -100,7 +100,7 @@ export default function Gameboard() {
     }
   }
 
-  function areAllShipsSunk() {
+  function allShipsAreSunk() {
     return ships.length === 0;
   }
 
@@ -109,6 +109,6 @@ export default function Gameboard() {
     getCells: () => board,
     placeShip,
     receiveAttack,
-    areAllShipsSunk,
+    allShipsAreSunk,
   };
 }

@@ -203,7 +203,7 @@ describe('receiveAttack() & areAllShipsSunk method', () => {
     board.receiveAttack(1, 1);
     expect(patrol.size).toBe(0);
     expect(board.getShips().includes(patrol)).toBeFalsy();
-    expect(board.areAllShipsSunk()).toBeTruthy();
+    expect(board.allShipsAreSunk()).toBeTruthy();
     const patrol2 = new Ship('patrol boat');
     const carrier1 = new Ship('carrier');
     board.placeShip(patrol2, 3, 1, 'vertical');
@@ -213,6 +213,6 @@ describe('receiveAttack() & areAllShipsSunk method', () => {
     expect(patrol2.size).toBe(0);
     expect(board.getShips().includes(patrol2)).toBeFalsy();
     expect(board.getShips().length).toBe(1);
-    expect(board.areAllShipsSunk()).toBeFalsy();
+    expect(board.allShipsAreSunk()).toBeFalsy();
   });
 });
