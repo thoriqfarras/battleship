@@ -29,24 +29,36 @@ export function createBoard() {
   return board;
 }
 
-export function drawShip(board, ship, color, x, y, axis = 'horizontal') {
+export function drawShip(board, shipSize, color, x, y, axis = 'horizontal') {
   let head = +`${y}${x}`;
   const cells = Array.from(board.querySelectorAll('.cell'));
   if (axis === 'horizontal') {
-    for (let i = 0; i < ship.size; i += 1) {
+    for (let i = 0; i < shipSize; i += 1) {
       cells[head].classList.remove('bg-white');
       cells[head].style.backgroundColor = color;
-      console.log(head);
-      console.log(cells[head]);
+      // console.log(head);
+      // console.log(cells[head]);
       head += 1;
     }
   } else if (axis === 'vertical') {
-    for (let i = 0; i < ship.size; i += 1) {
+    for (let i = 0; i < shipSize; i += 1) {
       cells[head].classList.remove('bg-white');
       cells[head].style.backgroundColor = color;
-      console.log(head);
-      console.log(cells[head]);
+      // console.log(head);
+      // console.log(cells[head]);
       head += 10;
     }
   }
+}
+
+export function markCellAsSuccessfulAttack(domBoard, x, y) {
+  const cellNo = +`${y}${x}`;
+  const cells = Array.from(domBoard.querySelectorAll('.cell'));
+  cells[cellNo].style.backgroundColor = 'green';
+}
+
+export function markCellAsFailedAttack(domBoard, x, y) {
+  const cellNo = +`${y}${x}`;
+  const cells = Array.from(domBoard.querySelectorAll('.cell'));
+  cells[cellNo].style.backgroundColor = 'maroon';
 }

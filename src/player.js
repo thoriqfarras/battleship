@@ -1,5 +1,10 @@
 import Gameboard from './gameboard';
-import { createBoard, drawShip } from './ui';
+import {
+  createBoard,
+  drawShip,
+  markCellAsFailedAttack,
+  markCellAsSuccessfulAttack,
+} from './ui';
 import Ship from './ship';
 
 export default function Player(name, color) {
@@ -10,7 +15,7 @@ export default function Player(name, color) {
     const ship = new Ship(type);
     try {
       board.placeShip(ship, x, y, axis);
-      drawShip(domBoard, ship, color, x, y, axis);
+      // drawShip(domBoard, ship, color, x, y, axis);
     } catch (error) {
       alert(error);
       console.log(error);
@@ -29,13 +34,19 @@ export default function Player(name, color) {
       }
     }
 
-    opponentBoard.receiveAttack(x, y);
+    try {
+      opponentBoard.receiveAttack(x, y);
+    } catch (error) {
+      alert(error);
+      console.log(error);
+    }
   }
 
   return {
     getName: () => name,
     getBoard: () => board,
     getDomBoard: () => domBoard,
+    getColor: () => color,
     placeShip,
     placeAttack,
   };

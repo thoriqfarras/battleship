@@ -22,6 +22,7 @@ export default function Gameboard() {
       throw new Error(
         'invalid coordinates. Coordinates can only be within [0, 0] and [9, 9] inclusive'
       );
+
     if (axis === 'horizontal') {
       if (ship.type === 'carrier' && x > 5)
         throw new Error(
