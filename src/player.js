@@ -13,13 +13,7 @@ export default function Player(name, color) {
 
   function placeShip(type, x, y, axis = 'horizontal') {
     const ship = new Ship(type);
-    try {
-      board.placeShip(ship, x, y, axis);
-      // drawShip(domBoard, ship, color, x, y, axis);
-    } catch (error) {
-      alert(error);
-      console.log(error);
-    }
+    board.placeShip(ship, x, y, axis);
   }
 
   function placeAttack(opponentBoard, x, y, random = false) {
@@ -28,14 +22,16 @@ export default function Player(name, color) {
       const randY = Math.floor(Math.random() * 10);
       try {
         opponentBoard.receiveAttack(randX, randY);
-        return;
+        return { x: randX, y: randY };
       } catch (error) {
         if (error.message === 'coords already attacked') continue;
+        else alert(error);
       }
     }
 
     try {
       opponentBoard.receiveAttack(x, y);
+      return { x, y };
     } catch (error) {
       alert(error);
       console.log(error);
