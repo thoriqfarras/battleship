@@ -23,7 +23,9 @@ export default function GameController(playerOne, playerTwo = null) {
       return 0;
     }
     switchAttackerTarget();
-    return attacker.getBoard().getCells()[attack.y][attack.x] === 1 ? 1 : -1;
+    const code =
+      attacker.getBoard().getCells()[attack.y][attack.x] === 1 ? 1 : -1;
+    return { code, x: attack.x, y: attack.y };
   }
 
   return {
