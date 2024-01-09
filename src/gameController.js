@@ -1,0 +1,35 @@
+import Player from './player';
+import { createBoard } from './ui';
+
+export default function GameController(playerOne, playerTwo = null) {
+  const p1 = playerOne;
+  const p2 = playerTwo || new Player('Computer', 'red');
+  let [attacker, target] = [p1, p2];
+
+  let activeBoard = target.getBoard();
+
+  function placeShip(player, shipType, x, y, axis = 'horizontal') {
+    player.placeShip(shipType, x, y, axis);
+  }
+
+  function switchAttackerTarget() {
+    [attacker, target] = [target, attacker];
+    activeBoard = target.getBoard();
+  }
+
+  function placeAttack(x, y, random = false) {
+    const attack = attacker.placeAttack(target.getBoard(), x, y, random);
+    if (target.getBoard().allShipsAreSunk()) {
+      return 0;
+    }
+    switchAttackerTarget();
+    return attacker.getBoard().getCells()[attack.y][attack.x] === 1 ? 1 : -1;
+  }
+
+  return {
+    getActiveBoard: () => activeBoard,
+    getAttackerTarget: () => [attacker, target],
+    placeShip,
+    placeAttack,
+  };
+}
