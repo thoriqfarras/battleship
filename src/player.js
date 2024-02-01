@@ -8,12 +8,31 @@ import {
 import Ship from './ship';
 
 export default function Player(name, color) {
-  const board = Gameboard();
-  const domBoard = createBoard();
+  let board = Gameboard();
+  // const domBoard = createBoard();
 
-  function placeShip(type, x, y, axis = 'horizontal') {
+  function placeShip(type, x, y, axis = 'horizontal', random = false) {
     const ship = new Ship(type);
-    board.placeShip(ship, x, y, axis);
+    if (random) {
+      while (random) {
+        const randX = Math.floor(Math.random() * 10);
+        const randY = Math.floor(Math.random() * 10);
+        const randAxis = Math.random() > 0.5 ? 'horizontal' : 'vertical';
+        try {
+          board.placeShip(ship, randX, randY, randAxis);
+          console.log(randX, randY, type, randAxis);
+          return ship;
+        } catch (error) {
+          console.log(randX, randY, type, randAxis, 'failed');
+          if (error.message.includes('invalid placement')) {
+            continue;
+          }
+        }
+      }
+    } else {
+      board.placeShip(ship, x, y, axis);
+    }
+    return ship;
   }
 
   function placeAttack(opponentBoard, x, y, random = false) {
@@ -25,25 +44,23 @@ export default function Player(name, color) {
         return { x: randX, y: randY };
       } catch (error) {
         if (error.message === 'coords already attacked') continue;
-        else alert(error);
       }
     }
+    opponentBoard.receiveAttack(x, y);
+    return { x, y };
+  }
 
-    try {
-      opponentBoard.receiveAttack(x, y);
-      return { x, y };
-    } catch (error) {
-      alert(error);
-      console.log(error);
-    }
+  function resetBoard() {
+    board = Gameboard();
   }
 
   return {
     getName: () => name,
     getBoard: () => board,
-    getDomBoard: () => domBoard,
+    // getDomBoard: () => domBoard,
     getColor: () => color,
     placeShip,
     placeAttack,
+    resetBoard,
   };
 }
