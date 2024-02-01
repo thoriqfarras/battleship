@@ -23,6 +23,8 @@ export default function Gameboard() {
         'invalid coordinates. Coordinates can only be within [0, 0] and [9, 9] inclusive'
       );
 
+    x = +x;
+    y = +y;
     if (axis === 'horizontal') {
       if (ship.type === 'carrier' && x > 5)
         throw new Error(
@@ -47,6 +49,8 @@ export default function Gameboard() {
         if (board[y][x + i] !== 0) {
           throw new Error(`invalid placement. Cell (${x}, ${y}) is occupied`);
         }
+      }
+      for (let i = 0; i < ship.size; i += 1) {
         board[y][x + i] = ship.type;
       }
     } else if (axis === 'vertical') {
@@ -73,6 +77,8 @@ export default function Gameboard() {
         if (board[y + i][x] !== 0) {
           throw new Error(`invalid placement. Cell (${x}, ${y}) is occupied`);
         }
+      }
+      for (let i = 0; i < ship.size; i += 1) {
         board[y + i][x] = ship.type;
       }
     }
