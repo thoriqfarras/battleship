@@ -8,8 +8,15 @@ export default function GameController(playerOne, playerTwo = null) {
 
   let activeBoard = target.getBoard();
 
-  function placeShip(player, shipType, x, y, axis = 'horizontal') {
-    player.placeShip(shipType, x, y, axis);
+  function placeShip(
+    player,
+    shipType,
+    x,
+    y,
+    axis = 'horizontal',
+    random = false
+  ) {
+    return player.placeShip(shipType, x, y, axis, random);
   }
 
   function switchAttackerTarget() {
@@ -20,7 +27,7 @@ export default function GameController(playerOne, playerTwo = null) {
   function placeAttack(x, y, random = false) {
     const attack = attacker.placeAttack(target.getBoard(), x, y, random);
     if (target.getBoard().allShipsAreSunk()) {
-      return 0;
+      return { code: 0 };
     }
     switchAttackerTarget();
     const code =
