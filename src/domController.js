@@ -155,20 +155,20 @@ export default function domController() {
         cell.style.pointerEvents = 'auto';
       }
     });
+    console.log('hello');
   }
 
   function switchTurn() {
     return new Promise((resolve) => {
-      // paused = true;
       setTimeout(() => {
         switchTargetBoard();
         if (attacker.getName() !== 'Computer') {
           togglePointerEventsOnBoard(target.domBoard);
+          console.log('HelloWank');
         }
         renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
       }, 2000);
       setTimeout(() => {
-        // paused = false;
         resolve(1);
       }, 2000);
     });
@@ -183,6 +183,7 @@ export default function domController() {
     try {
       outcome = game.placeAttack(x, y, isComputer);
       updatePlayerBoard(target);
+      updatePlayerShipsText();
       togglePointerEventsOnBoard(target.domBoard);
     } catch (error) {
       if (error.message === 'coords already attacked') {
@@ -191,6 +192,7 @@ export default function domController() {
         );
         return 0;
       }
+      throw error;
     }
     if (outcome.code === 0) {
       console.log('winner!');
@@ -224,6 +226,26 @@ export default function domController() {
     const p2ShipsText = Array.from(
       document.getElementById('player-two-ships').querySelectorAll('li')
     );
+
+    if (gameOngoing) {
+      let currentTargetText = [];
+      if (target === p1) {
+        currentTargetText = p1ShipsText;
+      } else if (target === p2) {
+        currentTargetText = p2ShipsText;
+      }
+      const targetShips = target
+        .getBoard()
+        .getShips()
+        .map((ship) => ship.type);
+      console.log(targetShips);
+      currentTargetText.forEach((ship) => {
+        console.log(ship.innerText.toLowerCase());
+        if (!targetShips.includes(ship.innerText.toLowerCase())) {
+          ship.classList.add('line-through');
+        }
+      });
+    }
 
     if (playerPlacingShips === p1) {
       p1ShipsText[index].classList.remove('text-zinc-400');
@@ -265,8 +287,8 @@ export default function domController() {
                 updatePlayerBoard(p2);
                 playerPlacingShips = false;
                 gameOngoing = true;
-                renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
                 togglePointerEventsOnBoard(p2.domBoard);
+                renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
               }, 4000);
             })();
           }
