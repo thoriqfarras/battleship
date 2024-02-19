@@ -34,12 +34,11 @@ function createBoard() {
 }
 
 export default function domController() {
-  const p1 = new Player('Player 1', 'blue');
-  const p2 = new Player('Computer', 'red');
-  const game = GameController(p1, p2);
+  let p1 = null;
+  let p2 = null;
+  let game = null;
   let gameMode = 0; // 0: vs com, 1: coop.
   let gameOngoing = false;
-  let playerPlacingShips = p1;
   let placementAxis = 'horizontal';
   const ships = [
     'carrier',
@@ -50,14 +49,36 @@ export default function domController() {
   ];
   let shipToPlaceIndex = 0;
   let shipToPlace = ships[shipToPlaceIndex];
-  let [attacker, target] = game.getAttackerTarget();
-
-  Object.assign(p1, { domBoard: createBoard() });
-  Object.assign(p2, { domBoard: createBoard() });
+  let playerPlacingShips = null;
+  let [attacker, target] = [];
+  let shipsHidden = true;
 
   let activePopup = {};
   const controlSection = document.getElementById('controls');
   const popUpGoHomeBackdrop = document.getElementById('popup-go-home');
+
+  function clearAllChildElements(parent) {
+    while (parent.firstChild) {
+      parent.removeChild(parent.firstChild);
+    }
+  }
+
+  function hideAllChildElements(parentId) {
+    const children = Array.from(document.getElementById(parentId).children);
+    children.forEach((child) => {
+      child.classList.add('hidden');
+    });
+  }
+
+  function hideElementById(id) {
+    const element = document.getElementById(id);
+    element.classList.add('hidden');
+  }
+
+  function unhideElementById(id) {
+    const element = document.getElementById(id);
+    element.classList.remove('hidden');
+  }
 
   function cellNoToCoord(cell) {
     const cellNo = cell.dataset.index;
@@ -84,9 +105,7 @@ export default function domController() {
     const cells = Array.from(domBoard.querySelectorAll('.cell'));
     let indexToDraw = +cellIndex;
     if (axis === 'horizontal') {
-      console.log('horizontal');
       if ((indexToDraw + size) % 10 < size && (indexToDraw + size) % 10 !== 0) {
-        console.log('out of bounds.', cellIndex, indexToDraw + size);
         return;
       }
       for (let i = 0; i < size; i += 1) {
@@ -95,7 +114,6 @@ export default function domController() {
       }
     } else if (axis === 'vertical') {
       if (indexToDraw + (size - 1) * 10 > 99) {
-        console.log('out of bounds.', cellIndex, indexToDraw + (size - 1) * 10);
         return;
       }
       for (let i = 0; i < size; i += 1) {
@@ -105,7 +123,7 @@ export default function domController() {
     }
   }
 
-  function updatePlayerBoard(player) {
+  function updatePlayerBoard(player, hideShips = false) {
     const domBoard = player.domBoard.querySelectorAll('.cell');
     const board = player.getBoard().getCells();
     domBoard.forEach((cell) => {
@@ -116,11 +134,46 @@ export default function domController() {
         cell.style.backgroundColor = 'white';
       } else if (board[row][col] === 1) {
         cell.style.backgroundColor = 'lime';
-      } else {
+      } else if (!hideShips) {
         cell.style.backgroundColor = player.getColor();
+      } else {
+        cell.style.backgroundColor = 'white';
       }
       cell.style.filter = '';
     });
+  }
+
+  function updatePlayerShipsText(index = shipToPlaceIndex) {
+    const p1ShipsText = Array.from(
+      document.getElementById('player-one-ships').querySelectorAll('li')
+    );
+    const p2ShipsText = Array.from(
+      document.getElementById('player-two-ships').querySelectorAll('li')
+    );
+
+    if (gameOngoing) {
+      let currentTargetText = [];
+      if (target === p1) {
+        currentTargetText = p1ShipsText;
+      } else if (target === p2) {
+        currentTargetText = p2ShipsText;
+      }
+      const targetShips = target
+        .getBoard()
+        .getShips()
+        .map((ship) => ship.type);
+      currentTargetText.forEach((ship) => {
+        if (!targetShips.includes(ship.innerText.toLowerCase())) {
+          ship.classList.add('line-through');
+        }
+      });
+    }
+
+    if (playerPlacingShips === p1) {
+      p1ShipsText[index].classList.remove('text-zinc-400');
+    } else if (playerPlacingShips === p2) {
+      p2ShipsText[index].classList.remove('text-zinc-400');
+    }
   }
 
   function renderTextOntoMessagePanel(text) {
@@ -137,25 +190,20 @@ export default function domController() {
   function renderComputerIsThinkingText() {
     return new Promise((resolve) => {
       renderTextOntoMessagePanel(`${attacker.getName()} is thinking...`);
-      // paused = true;
       setTimeout(() => {
-        // paused = false;
         resolve(1);
       }, 2000);
     });
   }
 
   function togglePointerEventsOnBoard(domBoard) {
-    // console.log(domBoard);
     domBoard.querySelectorAll('.cell').forEach((cell) => {
-      // console.log(cell.style.pointerEvents);
       if (cell.style.pointerEvents !== 'none') {
         cell.style.pointerEvents = 'none';
       } else {
         cell.style.pointerEvents = 'auto';
       }
     });
-    console.log('hello');
   }
 
   function switchTurn() {
@@ -164,11 +212,12 @@ export default function domController() {
         switchTargetBoard();
         if (attacker.getName() !== 'Computer') {
           togglePointerEventsOnBoard(target.domBoard);
-          console.log('HelloWank');
         }
         renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
       }, 2000);
       setTimeout(() => {
+        shipsHidden = true;
+        updatePlayerBoard(target, shipsHidden);
         resolve(1);
       }, 2000);
     });
@@ -182,7 +231,7 @@ export default function domController() {
     let outcome = {};
     try {
       outcome = game.placeAttack(x, y, isComputer);
-      updatePlayerBoard(target);
+      updatePlayerBoard(target, true);
       updatePlayerShipsText();
       togglePointerEventsOnBoard(target.domBoard);
     } catch (error) {
@@ -195,7 +244,6 @@ export default function domController() {
       throw error;
     }
     if (outcome.code === 0) {
-      console.log('winner!');
       renderTextOntoMessagePanel(`${attacker.getName()} won!`);
       gameOngoing = false;
       return 0;
@@ -219,7 +267,7 @@ export default function domController() {
     return 1;
   }
 
-  function updatePlayerShipsText(index = shipToPlaceIndex) {
+  function resetPlayerShipsText() {
     const p1ShipsText = Array.from(
       document.getElementById('player-one-ships').querySelectorAll('li')
     );
@@ -227,31 +275,14 @@ export default function domController() {
       document.getElementById('player-two-ships').querySelectorAll('li')
     );
 
-    if (gameOngoing) {
-      let currentTargetText = [];
-      if (target === p1) {
-        currentTargetText = p1ShipsText;
-      } else if (target === p2) {
-        currentTargetText = p2ShipsText;
-      }
-      const targetShips = target
-        .getBoard()
-        .getShips()
-        .map((ship) => ship.type);
-      console.log(targetShips);
-      currentTargetText.forEach((ship) => {
-        console.log(ship.innerText.toLowerCase());
-        if (!targetShips.includes(ship.innerText.toLowerCase())) {
-          ship.classList.add('line-through');
-        }
-      });
-    }
-
-    if (playerPlacingShips === p1) {
-      p1ShipsText[index].classList.remove('text-zinc-400');
-    } else if (playerPlacingShips === p2) {
-      p2ShipsText[index].classList.remove('text-zinc-400');
-    }
+    p1ShipsText.forEach((ship) => {
+      ship.classList.remove('line-through');
+      ship.classList.add('text-zinc-400');
+    });
+    p2ShipsText.forEach((ship) => {
+      ship.classList.remove('line-through');
+      ship.classList.add('text-zinc-400');
+    });
   }
 
   async function clickHandlerBoards(e) {
@@ -268,7 +299,11 @@ export default function domController() {
         if (shipToPlaceIndex === 5 && playerPlacingShips === p2) {
           playerPlacingShips = false;
           gameOngoing = true;
+          updatePlayerBoard(p2, true);
           renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
+          hideAllChildElements('controls');
+          unhideElementById('go-home');
+          unhideElementById('toggle-ship-view');
           return;
         }
         if (shipToPlaceIndex === 5) {
@@ -283,14 +318,16 @@ export default function domController() {
                   game.placeShip(playerPlacingShips, ships[i], 0, 0, '', true);
                   updatePlayerShipsText(i);
                 }
-                console.log(playerPlacingShips.getBoard().getCells());
-                updatePlayerBoard(p2);
                 playerPlacingShips = false;
                 gameOngoing = true;
                 togglePointerEventsOnBoard(p2.domBoard);
                 renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
+                hideAllChildElements('controls');
+                unhideElementById('go-home');
               }, 4000);
             })();
+          } else {
+            updatePlayerBoard(p1, true);
           }
           switchTargetBoard();
           togglePointerEventsOnBoard(p1.domBoard);
@@ -347,22 +384,20 @@ export default function domController() {
     boardsContainer.append(p2.domBoard);
     attacker.domBoard.classList.add('target-board');
     togglePointerEventsOnBoard(p2.domBoard);
+  }
 
-    // game.placeShip(p1, 'carrier', 0, 0, 'horizontal');
-    // game.placeShip(p1, 'battleship', 0, 6, 'vertical');
-    // game.placeShip(p1, 'destroyer', 4, 3, 'vertical');
-    // game.placeShip(p1, 'submarine', 9, 2, 'vertical');
-    // game.placeShip(p1, 'patrol boat', 2, 6, 'horizontal');
-
-    // game.placeShip(p2, 'carrier', 0, 0, 'horizontal');
-    // game.placeShip(p2, 'battleship', 0, 6, 'vertical');
-    // game.placeShip(p2, 'destroyer', 4, 3, 'vertical');
-    // game.placeShip(p2, 'submarine', 9, 2, 'vertical');
-    // game.placeShip(p2, 'patrol boat', 2, 6, 'horizontal');
-
-    // for (let i = 0; i < 50; i += 1) {
-    //   p1.placeAttack(target.getBoard(), 0, 0, true);
-    // }
+  function resetGameVariables() {
+    p1 = null;
+    p2 = null;
+    game = null;
+    gameMode = 0;
+    gameOngoing = false;
+    placementAxis = 'horizontal';
+    shipToPlaceIndex = 0;
+    shipToPlace = ships[shipToPlaceIndex];
+    playerPlacingShips = null;
+    [attacker, target] = [];
+    shipsHidden = true;
   }
 
   function displayPopup(popupBackdrop) {
@@ -376,180 +411,173 @@ export default function domController() {
   }
 
   function loadStartPage() {
-    const playVsComBtn = `<button
-        id="play-vs-com"
-        type="button"
-        class="bg-zinc-800 rounded-xl p-4 text-zinc-50 font-bold text-2xl hover:bg-zinc-600"
-      >
-        Play vs COM
-      </button>`;
-    const playCoopBtn = `<button
-        id="play-coop"
-        type="button"
-        class="bg-zinc-800 rounded-xl p-4 text-zinc-50 font-bold text-2xl hover:bg-zinc-600"
-      >
-        Play Coop
-      </button>`;
-    controlSection.innerHTML += playVsComBtn;
-    controlSection.innerHTML += playCoopBtn;
+    hideElementById('game-info');
+    hideElementById('boards');
+    hideAllChildElements('controls');
+    unhideElementById('play-vs-com');
+    unhideElementById('play-coop');
   }
 
-  function loadPlayerCustomizationForm(gameMode) {
-    controlSection.innerHTML += `<form class="grid grid-cols-1 gap-x-2">
-      <h2 class="text-xl col-span-2 font-bold">Player 1</h2>
-      <label for="player-one-name" class="self-end">
-        Name
-      </label>
-      <label for="player-one-color" class="col-start-2 self-end">
-        Color
-      </label>
-      <input
-        type="text"
-        id="player-one-name"
-        class="min-w-[250px] mb-4 h-8 rounded-xl border-zinc-300 border-2 pl-2 col-start-1"
-        placeholder="Player 1"
-      />
-      <input
-        type="color"
-        value="#1d4ed8"
-        class="border-2 border-zinc-300"
-        id="player-one-color"
-      />
-      <h2 class="text-xl col-span-2 font-bold">Player 2</h2>
-      <label for="player-two-name" class="self-end">
-        Name
-      </label>
-      <label for="player-two-color" class="self-end">
-        Color
-      </label>
-      <input
-        type="text"
-        id="player-two-name"
-        class="min-w-[250px] h-8 rounded-xl border-zinc-300 border-2 pl-2 mb-4"
-        placeholder="Player 2"
-      />
-      <input
-        type="color"
-        value="#b91c1c"
-        class="border-2 border-zinc-300"
-        id="player-two-color"
-      />
-      <button
-        id="start-game"
-        type="button"
-        class="bg-zinc-800 rounded-xl p-3 text-zinc-50 font-bold text-xl hover:bg-zinc-600 w-fit place-self-center col-span-2"
-      >
-        Play
-      </button>
-    </form>`;
-    if (gameMode === 0) {
-      const form = controlSection.querySelector('form');
-      Array.from(form.children).forEach((child) => {
-        if (
-          child.id.includes('player-two') ||
-          child.htmlFor?.includes('player-two') ||
-          child.innerText.includes('Player 2')
-        ) {
-          child.style.display = 'none';
+  function loadPlayerCustomizationForm() {
+    hideAllChildElements('controls');
+    unhideElementById('player-customization-form');
+    const form = controlSection.querySelector('form');
+    Array.from(form.children).forEach((child) => {
+      if (child.tagName === 'INPUT' && child.type === 'text') {
+        child.value = '';
+      }
+      if (
+        child.id.includes('player-two') ||
+        child.htmlFor?.includes('player-two') ||
+        child.innerText.includes('Player 2')
+      ) {
+        if (gameMode === 0) {
+          child.classList.add('hidden');
+        } else {
+          child.classList.remove('hidden');
+        }
+      }
+    });
+  }
+
+  function setPlayerNameOnGameInfo(playerNumber, playerName) {
+    if (playerNumber === 1) {
+      const para = document.getElementById('player-one-name-info');
+      para.innerText = playerName;
+    }
+    if (playerNumber === 2) {
+      const para = document.getElementById('player-two-name-info');
+      para.innerText = playerName;
+    }
+  }
+
+  function getFormInputs() {
+    const form = document.querySelector('form');
+    return {
+      p1Name: form.querySelector('#player-one-name').value,
+      p1Color: form.querySelector('#player-one-color').value,
+      p2Name:
+        gameMode === 1 ? form.querySelector('#player-two-name').value : null,
+      p2Color:
+        gameMode === 1 ? form.querySelector('#player-two-color').value : null,
+    };
+  }
+
+  function startGame(formInputs) {
+    p1 = new Player(formInputs.p1Name, formInputs.p1Color);
+    p2 =
+      gameMode === 1
+        ? new Player(formInputs.p2Name, formInputs.p2Color)
+        : new Player('Computer', 'red');
+    game = GameController(p1, p2);
+    playerPlacingShips = p1;
+    [attacker, target] = game.getAttackerTarget();
+    shipToPlaceIndex = 0;
+    shipToPlace = ships[shipToPlaceIndex];
+
+    Object.assign(p1, { domBoard: createBoard() });
+    Object.assign(p2, { domBoard: createBoard() });
+
+    initializeBoards();
+
+    setPlayerNameOnGameInfo(1, p1.getName());
+    setPlayerNameOnGameInfo(2, p2.getName());
+    renderTextOntoMessagePanel(`${attacker.getName()}, place your carrier.`);
+    p1.domBoard.addEventListener('click', clickHandlerBoards);
+    p2.domBoard.addEventListener('click', clickHandlerBoards);
+
+    const p1DomBoardCells = p1.domBoard.querySelectorAll('.cell');
+    const p2DomBoardCells = p2.domBoard.querySelectorAll('.cell');
+    p1DomBoardCells.forEach((cell) => {
+      cell.addEventListener('mouseenter', (e) => {
+        if (playerPlacingShips === p1) {
+          drawShip(
+            shipToPlace,
+            p1.domBoard,
+            e.target.dataset.index,
+            placementAxis
+          );
         }
       });
-    }
-  }
-
-  function clearAllChildElements(parent) {
-    while (parent.firstChild) {
-      parent.removeChild(parent.firstChild);
-    }
+      cell.addEventListener('mouseleave', () => {
+        if (playerPlacingShips === p1) {
+          updatePlayerBoard(p1);
+        }
+      });
+    });
+    p2DomBoardCells.forEach((cell) => {
+      cell.addEventListener('mouseenter', (e) => {
+        if (playerPlacingShips === p2) {
+          drawShip(
+            shipToPlace,
+            p2.domBoard,
+            e.target.dataset.index,
+            placementAxis
+          );
+        }
+      });
+      cell.addEventListener('mouseleave', () => {
+        if (playerPlacingShips === p2) {
+          updatePlayerBoard(p2);
+        }
+      });
+    });
   }
 
   function controlSectionHandler(e) {
     if (e.target.id === 'play-vs-com') {
       gameMode = 0;
-      clearAllChildElements(controlSection);
-      loadPlayerCustomizationForm(gameMode);
+      loadPlayerCustomizationForm();
     } else if (e.target.id === 'play-coop') {
       gameMode = 1;
-      clearAllChildElements(controlSection);
-      loadPlayerCustomizationForm(gameMode);
+      loadPlayerCustomizationForm();
     } else if (e.target.id === 'start-game') {
-      const playerOneName =
-        controlSection.querySelector('#player-one-name').value;
-      const playerOneColor =
-        controlSection.querySelector('#player-one-color').value;
-      if (gameMode === 1) {
-        const playerTwoName =
-          controlSection.querySelector('#player-two-name').value;
-        const playerTwoColor =
-          controlSection.querySelector('#player-two-color').value;
-      }
+      const formInputs = getFormInputs();
+      unhideElementById('boards');
+      unhideElementById('game-info');
+      hideAllChildElements('controls');
+      unhideElementById('rotate-ship');
+      startGame(formInputs);
     } else if (e.target.id === 'rotate-ship') {
       placementAxis =
         placementAxis === 'horizontal' ? 'vertical' : 'horizontal';
-      console.log(placementAxis);
+    } else if (e.target.id === 'go-home') {
+      if (!gameOngoing) {
+        const boardsContainer = document.getElementById('boards');
+        clearAllChildElements(boardsContainer);
+        loadStartPage();
+        resetGameVariables();
+        resetPlayerShipsText();
+      } else {
+        displayPopup(popUpGoHomeBackdrop);
+      }
+    } else if (e.target.id === 'back-home') {
+      hideAllChildElements('controls');
+      loadStartPage();
+    } else if (e.target.id === 'toggle-ship-view') {
+      shipsHidden = !shipsHidden;
+      updatePlayerBoard(attacker, shipsHidden);
     }
   }
 
-  // loadStartPage();
-  initializeBoards();
-  // updatePlayerBoard(p1);
-  // updatePlayerBoard(p2);
-
-  // renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
-  renderTextOntoMessagePanel(`${attacker.getName()}, place your carrier.`);
-  p1.domBoard.addEventListener('click', clickHandlerBoards);
-  p2.domBoard.addEventListener('click', clickHandlerBoards);
-
-  const p1DomBoardCells = p1.domBoard.querySelectorAll('.cell');
-  const p2DomBoardCells = p2.domBoard.querySelectorAll('.cell');
-  p1DomBoardCells.forEach((cell) => {
-    cell.addEventListener('mouseenter', (e) => {
-      if (playerPlacingShips === p1) {
-        drawShip(
-          shipToPlace,
-          p1.domBoard,
-          e.target.dataset.index,
-          placementAxis
-        );
-      }
-    });
-    cell.addEventListener('mouseleave', (e) => {
-      if (playerPlacingShips === p1) {
-        updatePlayerBoard(p1);
-      }
-    });
-  });
-  p2DomBoardCells.forEach((cell) => {
-    cell.addEventListener('mouseenter', (e) => {
-      if (playerPlacingShips === p2) {
-        drawShip(
-          shipToPlace,
-          p2.domBoard,
-          e.target.dataset.index,
-          placementAxis
-        );
-      }
-    });
-    cell.addEventListener('mouseleave', (e) => {
-      if (playerPlacingShips === p2) {
-        updatePlayerBoard(p2);
-      }
-    });
-  });
-
-  controlSection.addEventListener('click', (e) => {
-    if (e.target.id === 'go-home') {
-      displayPopup(popUpGoHomeBackdrop);
-    }
-  });
   popUpGoHomeBackdrop.addEventListener('click', (e) => {
     if (
       (activePopup && e.target.classList.contains('popup-backdrop')) ||
       e.target.classList.contains('popup-no')
     ) {
       closePopup();
+    } else if (
+      (activePopup && e.target.classList.contains('popup-backdrop')) ||
+      e.target.classList.contains('popup-yes')
+    ) {
+      closePopup();
+      p1.domBoard.remove();
+      p2.domBoard.remove();
+      loadStartPage();
+      resetGameVariables();
+      resetPlayerShipsText();
     }
   });
+
   controlSection.addEventListener('click', controlSectionHandler);
 }
-
-domController();
