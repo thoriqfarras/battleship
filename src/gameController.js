@@ -1,5 +1,4 @@
 import Player from './player';
-import { createBoard } from './ui';
 
 export default function GameController(playerOne, playerTwo = null) {
   const p1 = playerOne;

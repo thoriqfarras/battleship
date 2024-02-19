@@ -6,5 +6,5 @@
   "tailwindCSS.includeLanguages": {
     "javascript": "javascript",
     "html": "HTML"
-  },
+  }
 }

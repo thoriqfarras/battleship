@@ -1,10 +1,4 @@
 import Gameboard from './gameboard';
-import {
-  createBoard,
-  drawShip,
-  markCellAsFailedAttack,
-  markCellAsSuccessfulAttack,
-} from './ui';
 import Ship from './ship';
 
 export default function Player(name, color) {
@@ -20,10 +14,8 @@ export default function Player(name, color) {
         const randAxis = Math.random() > 0.5 ? 'horizontal' : 'vertical';
         try {
           board.placeShip(ship, randX, randY, randAxis);
-          console.log(randX, randY, type, randAxis);
           return ship;
         } catch (error) {
-          console.log(randX, randY, type, randAxis, 'failed');
           if (error.message.includes('invalid placement')) {
             continue;
           }
@@ -57,7 +49,6 @@ export default function Player(name, color) {
   return {
     getName: () => name,
     getBoard: () => board,
-    // getDomBoard: () => domBoard,
     getColor: () => color,
     placeShip,
     placeAttack,
