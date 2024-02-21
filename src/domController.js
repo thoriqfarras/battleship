@@ -216,8 +216,10 @@ export default function domController() {
         renderTextOntoMessagePanel(`${attacker.getName()}'s turn.`);
       }, 2000);
       setTimeout(() => {
-        shipsHidden = true;
-        updatePlayerBoard(target, shipsHidden);
+        if (gameMode === 1) {
+          shipsHidden = true;
+          updatePlayerBoard(target, shipsHidden);
+        }
         resolve(1);
       }, 2000);
     });
@@ -231,7 +233,8 @@ export default function domController() {
     let outcome = {};
     try {
       outcome = game.placeAttack(x, y, isComputer);
-      updatePlayerBoard(target, true);
+      shipsHidden = attacker.getName() !== 'Computer';
+      updatePlayerBoard(target, shipsHidden);
       updatePlayerShipsText();
       togglePointerEventsOnBoard(target.domBoard);
     } catch (error) {
